@@ -15,22 +15,10 @@ public class MainActivity extends AppCompatActivity {
     super.onCreate(savedInstanceState);
     setContentView(R.layout.activity_main);
 
-
-
-
     btnStartGame = findViewById(R.id.btn_start_game);
     btnStartGame.setOnClickListener((btn) -> {
-      if ( connectToServer() ){
         startActivity(new Intent(this,ChessActivity.class));
-      }
     });
 
-
   }
-
-  private boolean connectToServer(){
-    /// connect to server
-    return true;
-  }
-
 }

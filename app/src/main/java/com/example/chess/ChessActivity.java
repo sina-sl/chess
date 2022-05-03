@@ -28,4 +28,10 @@ public class ChessActivity extends AppCompatActivity {
 
   }
 
+
+  @Override
+  protected void onDestroy() {
+    super.onDestroy();
+    finish();
+  }
 }

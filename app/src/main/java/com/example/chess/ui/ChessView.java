@@ -88,9 +88,9 @@ public class ChessView extends LinearLayout {
         pieceItems[i][j].setOnClickListener(view -> handleClick(finalI, finalJ));
 
         if ((i + j) % 2 == 0) {
-          pieceItems[i][j].setBackground(getResources().getDrawable(R.drawable.even, getContext().getTheme()));
+          pieceItems[i][j].setBackground(getResources().getDrawable(WHITE, getContext().getTheme()));
         } else {
-          pieceItems[i][j].setBackground(getResources().getDrawable(R.drawable.odd, getContext().getTheme()));
+          pieceItems[i][j].setBackground(getResources().getDrawable(BLACK, getContext().getTheme()));
         }
         colLayout.addView(pieceItems[i][j]);
       }
@@ -151,9 +151,9 @@ public class ChessView extends LinearLayout {
     }
 
     if (piece.color != null && board.getCurrentPlayerColor() == piece.color) {
-      background = isEven ? R.drawable.even_hilight : R.drawable.odd_hilight;
+      background = isEven ? WHITE_HIGHLIGHT : BLACK_HIGHLIGHT;
     } else {
-      background = isEven ? R.drawable.even : R.drawable.odd;
+      background = isEven ? WHITE : BLACK;
     }
 
     return new PieceItem.PieceResources(pieceRes, background);
@@ -225,7 +225,7 @@ public class ChessView extends LinearLayout {
         new PromoteDialog(getContext(), pieceKind -> {
           ((Promotion) finalFound).setPromotionKind(pieceKind == null ? Knight : pieceKind);
           handleMove(finalFound);
-        }).show();
+        });
       } else {
         handleMove(found);
       }

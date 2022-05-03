@@ -19,13 +19,13 @@ public class PromoteDialog {
 
 
   private OnChosePromote onChosePromote;
-  private AlertDialog.Builder alert;
+  private AlertDialog alert;
   private Button btnKnight, btnRook, btnQueen, btnBishop;
 
   public PromoteDialog(Context context , OnChosePromote onChosePromote){
     this.onChosePromote = onChosePromote;
 
-    alert = new AlertDialog.Builder(context);
+    AlertDialog.Builder alertB = new AlertDialog.Builder(context);
     View alertView = LayoutInflater.from(context).inflate(R.layout.promote_alert,null,false);
 
     btnBishop = alertView.findViewById(R.id.btn_bishop);
@@ -38,8 +38,9 @@ public class PromoteDialog {
     btnQueen.setOnClickListener(this::onClicks);
     btnRook.setOnClickListener(this::onClicks);
 
-    alert.setOnCancelListener(dialog -> onChosePromote.onChose(null));
-
+    alertB.setView(alertView);
+    alertB.setOnCancelListener(dialog -> onChosePromote.onChose(null));
+    alert = alertB.show();
   }
 
   private void onClicks(View view){
@@ -48,15 +49,7 @@ public class PromoteDialog {
         ((Button)view).getText().toString()
       )
     );
+    alert.dismiss();
   }
-
-
-  public void show(){
-    alert.show();
-  }
-
-
-
-
 
 }
