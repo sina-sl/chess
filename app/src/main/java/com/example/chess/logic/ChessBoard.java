@@ -351,4 +351,14 @@ public class ChessBoard {
 		{ new ChessPiece(Pawn, White), new ChessPiece(Pawn, White), new ChessPiece(Pawn, White), new ChessPiece(Pawn, White), new ChessPiece(Pawn, White), new ChessPiece(Pawn, White), new ChessPiece(Pawn, White), new ChessPiece(Pawn, White) },
 		{ new ChessPiece(Rook, White), new ChessPiece(Knight, White), new ChessPiece(Bishop, White), new ChessPiece(Queen, White), new ChessPiece(King, White), new ChessPiece(Bishop, White), new ChessPiece(Knight, White), new ChessPiece(Rook, White) }
 	};
+
+	public List<BaseMove> getTurns() {
+		return turns;
+	}
+
+	public void setTurns(List<BaseMove> turns){
+		this.turns.clear();
+		this.turns.addAll(turns);
+	}
+
 }

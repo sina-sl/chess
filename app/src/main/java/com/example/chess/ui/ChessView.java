@@ -1,12 +1,16 @@
 package com.example.chess.ui;
 
 import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.util.AttributeSet;
+import android.view.MotionEvent;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
 
+import com.example.chess.GameDB;
+import com.example.chess.MainActivity;
 import com.example.chess.R;
 import com.example.chess.logic.BaseMove;
 import com.example.chess.logic.Capture;
@@ -57,18 +61,23 @@ public class ChessView extends LinearLayout {
   );
 
 
-
   public ChessView(Context context, AttributeSet attrs) {
     super(context, attrs);
     layoutParams.weight = 1;
     childParams.weight = 1;
     createChessBackground();
-  }
 
+
+  }
 
 
   @SuppressLint("UseCompatLoadingForDrawables")
   private void createChessBackground() {
+
+    kingStrikes=null;
+    moves = null;
+    undone.clear();
+    board.reset();
 
     setOrientation(HORIZONTAL);
     setWeightSum(rowCount);
@@ -98,7 +107,6 @@ public class ChessView extends LinearLayout {
     }
     resetGrid();
   }
-
 
 
   private PieceItem.PieceResources getDrawableOfPiece(ChessPiece piece, boolean isEven) {
@@ -160,8 +168,6 @@ public class ChessView extends LinearLayout {
   }
 
 
-
-
   private void resetGrid() {
     for (int x = 0; x < board.ROWS; x++) {
       for (int y = 0; y < board.COLUMNS; y++) {
@@ -196,7 +202,6 @@ public class ChessView extends LinearLayout {
   }
 
 
-
   private void handleClick(int x, int y) {
     System.out.printf("Clicked (%d; %d)\n", x, y);
 
@@ -229,7 +234,7 @@ public class ChessView extends LinearLayout {
       } else {
         handleMove(found);
       }
-    }else {
+    } else {
       resetGrid();
     }
   }
@@ -247,16 +252,58 @@ public class ChessView extends LinearLayout {
 
       case Stalemate:
         kingStrikes = null;
+
+        final List<BaseMove> save1 = new ArrayList<>(board.getTurns()); //clone
+
+        ChessPiece.PieceColor wonColor1 = board.getCurrentPlayerColor() == ChessPiece.PieceColor.Black ?
+          ChessPiece.PieceColor.White:
+          ChessPiece.PieceColor.Black;
+
+        new ConclusionDialog(
+          getContext(),
+          wonColor1.name() + " You just stalemated, lame\n" +
+            "Enter title for this game",
+          (input) -> {
+            MainActivity.gameDB.insertGame(
+              new GameDB.Game(
+                input,
+                save1
+              )
+            );
+            ((Activity)getContext()).finish();
+          }
+        );
         resetGrid();
         board.reset();
-        new AlertDialog.Builder(getContext()).setMessage("You just stalemated, lame").show();
+
         break;
 
       case Checkmate:
-        kingStrikes = board.kingStrikers(board.getCurrentPlayerColor());
+        kingStrikes = null;
+
+        final List<BaseMove> save2 = new ArrayList<>(board.getTurns()); //clone
+
+        ChessPiece.PieceColor wonColor2 = board.getCurrentPlayerColor() == ChessPiece.PieceColor.Black ?
+          ChessPiece.PieceColor.White:
+          ChessPiece.PieceColor.Black;
+
+        new ConclusionDialog(
+          getContext(),
+          wonColor2.name() + " You just won wow\n" +
+            "Enter title for this game",
+          (input) -> {
+            MainActivity.gameDB.insertGame(
+              new GameDB.Game(
+                input,
+                save2
+              )
+            );
+            ((Activity)getContext()).finish();
+          }
+        );
         resetGrid();
         board.reset();
-        new AlertDialog.Builder(getContext()).setMessage("You just won wow").show();
+
         break;
     }
     undone.clear();
@@ -284,4 +331,23 @@ public class ChessView extends LinearLayout {
     }
   }
 
+  public void playBack(List<BaseMove> turns) {
+    for (int i = 0; i <turns.size() ; i++) {
+      undone.add(i,turns.get((turns.size() - 1) - i));
+    }
+
+    for (int i = 0; i < pieceItems.length ; i++) {
+      for (int j = 0; j < pieceItems[i].length; j++) {
+        pieceItems[i][j].setClickable(false);
+      }
+    }
+
+
+    resetGrid();
+  }
+
+  @Override
+  public boolean onTouchEvent(MotionEvent event) {
+    return true;
+  }
 }
