@@ -250,11 +250,10 @@ public class ChessView extends LinearLayout {
         kingStrikes = board.kingStrikers(board.getCurrentPlayerColor());
         break;
 
+
       case Stalemate:
         kingStrikes = null;
-
         final List<BaseMove> save1 = new ArrayList<>(board.getTurns()); //clone
-
         ChessPiece.PieceColor wonColor1 = board.getCurrentPlayerColor() == ChessPiece.PieceColor.Black ?
           ChessPiece.PieceColor.White:
           ChessPiece.PieceColor.Black;
@@ -270,19 +269,15 @@ public class ChessView extends LinearLayout {
                 save1
               )
             );
-            ((Activity)getContext()).finish();
+            freeze();
           }
         );
-        resetGrid();
-        board.reset();
-
         break;
 
+
       case Checkmate:
-        kingStrikes = null;
-
+        kingStrikes = board.kingStrikers(board.getCurrentPlayerColor());
         final List<BaseMove> save2 = new ArrayList<>(board.getTurns()); //clone
-
         ChessPiece.PieceColor wonColor2 = board.getCurrentPlayerColor() == ChessPiece.PieceColor.Black ?
           ChessPiece.PieceColor.White:
           ChessPiece.PieceColor.Black;
@@ -298,12 +293,9 @@ public class ChessView extends LinearLayout {
                 save2
               )
             );
-            ((Activity)getContext()).finish();
+            freeze();
           }
         );
-        resetGrid();
-        board.reset();
-
         break;
     }
     undone.clear();
@@ -315,6 +307,7 @@ public class ChessView extends LinearLayout {
     BaseMove move = board.undo();
     if (move != null) {
       undone.add(move);
+      kingStrikes = board.kingStrikers(board.getCurrentPlayerColor());
     }
     moves = null;
     resetGrid();
@@ -335,19 +328,16 @@ public class ChessView extends LinearLayout {
     for (int i = 0; i <turns.size() ; i++) {
       undone.add(i,turns.get((turns.size() - 1) - i));
     }
-
-    for (int i = 0; i < pieceItems.length ; i++) {
-      for (int j = 0; j < pieceItems[i].length; j++) {
-        pieceItems[i][j].setClickable(false);
-      }
-    }
-
-
+    freeze();
     resetGrid();
   }
 
-  @Override
-  public boolean onTouchEvent(MotionEvent event) {
-    return true;
+  private void freeze(){
+    for (PieceItem[] pieceItem : pieceItems) {
+      for (PieceItem item : pieceItem) {
+        item.setClickable(false);
+      }
+    }
   }
+
 }
