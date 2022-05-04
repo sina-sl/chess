@@ -5,7 +5,10 @@ import static com.example.chess.logic.ChessPiece.PieceColor.*;
 import static com.example.chess.logic.ChessPiece.PieceKind.*;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class ChessBoard {
 
@@ -18,11 +21,13 @@ public class ChessBoard {
 	}
 
 	private final List<BaseMove> turns = new ArrayList<>();
+	private final Map<ChessBoard, Integer> stateOccurrences = new HashMap<>();
 
 	public PieceColor getCurrentPlayerColor() { return turns.size() % 2 == 0 ? White : Black; }
 	public int getCurrentTurn() { return (turns.size() / 2) + 1; }
 
 	private BaseMove lastAbstractMove() { return turns.get(turns.size() - 1); }
+	
 	private int movesSinceCapture = 0;
 
 	private boolean checkXY(int x, int y) {
@@ -59,9 +64,9 @@ public class ChessBoard {
 				ChessPiece piece = board[x][y];
 				if (!piece.isEmpty() && piece.color != kingColor) { // Kings can't check themselves
 					for (BaseMove move: generatePseudoMovesFor(x, y)) {
-						if (move instanceof Capture ) {
+						if (move instanceof Capture) {
 							Capture capture = (Capture) move;
-							if (capture.defeated.piece == King && kingColor == capture.getAttacked().color) { // Sanity check, must be always true
+							if (capture.defeated.piece == King && kingColor == capture.defeated.color) { // Sanity check, must be always true
 								strikes.add(capture);
 							}
 						}
@@ -84,7 +89,7 @@ public class ChessBoard {
 	private void silentUndo(BaseMove move) { move.undo(this); }
 
 	public GameState move(BaseMove move) {
-		if (move instanceof Promotion  && !((Promotion)move).hasSelectedKind()) {
+		if (move instanceof Promotion && !((Promotion) move).hasSelectedKind()) {
 			throw new IllegalStateException();
 		}
 
@@ -99,6 +104,11 @@ public class ChessBoard {
 		if (movesSinceCapture > 50) {
 			return GameState.Stalemate;
 		}
+		
+		int occurrences = stateOccurrences.getOrDefault(this, 0);
+		if (occurrences < 3) {
+			stateOccurrences.put(this, occurrences + 1);
+		} else { return GameState.Stalemate; }
 
 		return getState();
 	}
@@ -133,6 +143,16 @@ public class ChessBoard {
 		}
 		return false;
 	}
+	
+	private void updateMovesSinceCapture() {
+		movesSinceCapture = turns.size();
+		for (int i = 0; i < turns.size(); i++) {
+			BaseMove passive = turns.get(turns.size() - i - 1);
+			if (passive.piece.piece == Pawn || passive instanceof Capture) {
+				movesSinceCapture = i; break;
+			}
+		}
+	}
 
 	public BaseMove undo() {
 		if (turns.isEmpty()) { return null; }
@@ -141,13 +161,7 @@ public class ChessBoard {
 
 		move.undo(this);
 
-		movesSinceCapture = turns.size();
-		for (int i = 0; i < turns.size(); i++) {
-			BaseMove passive = turns.get(turns.size() - i - 1);
-			if (passive.piece.piece == Pawn || passive instanceof Capture) {
-				movesSinceCapture = i; break;
-			}
-		}
+		updateMovesSinceCapture();
 
 		return move;
 	}
@@ -178,7 +192,15 @@ public class ChessBoard {
 		ChessPiece dest = board[x][y];
 		return dest.piece != Empty && dest.color != piece.color;
 	}
-
+	
+	@Override
+	public boolean equals(Object o) {
+		return this == o || o instanceof ChessBoard && Arrays.deepEquals(board, ((ChessBoard) o).board);
+	}
+	
+	// Will be used for the three repetitions rule
+	@Override public int hashCode() { return Arrays.deepHashCode(board); }
+	
 	private List<BaseMove> generatePseudoMovesFor(int x, int y) {
 		if (!(checkXY(x, y))) { return new ArrayList<>(); }
 
@@ -223,11 +245,11 @@ public class ChessBoard {
 				for (int dx = x - 1; dx <= x + 1; dx += 2) {
 					if (hasOpponent(piece, dx, dy)) { // includes the bound check
 						pseudoMoves.add(new Capture(piece, x, y, board[dx][dy], dx, dy));
-					} else if (
+					} else if ( // En Passant Yikes
 						hasOpponent(piece, dx, y) && board[dx][y].piece == Pawn && board[dx][y].movedOnce()
 							&& lastAbstractMove().piece == board[dx][y] // we do need == as we want to know exactly which pawn, otherwise just do a pos check
 							&& Math.abs(lastAbstractMove().pieceDY - lastAbstractMove().pieceOY) == 2
-					) { // En Passant Yikes
+					) {
 						pseudoMoves.add(new EnPassant(piece, x, y, dx, dy, board[dx][y], dx, y));
 					}
 				}
@@ -235,7 +257,8 @@ public class ChessBoard {
 				for (int i = 0; i < pseudoMoves.size(); i++) {
 					BaseMove move = pseudoMoves.get(i);
 					if (move.pieceDY == (piece.color == White ? 0 : COLUMNS - 1)) {
-						pseudoMoves.set(i, new Promotion(move));
+						Promotion promotion = move instanceof Capture ? new Promotion.CapturingPromotion((Capture) move) : new Promotion.PeacefulPromotion(move);
+						pseudoMoves.set(i, promotion.asBaseMove());
 					}
 				}
 
@@ -272,6 +295,7 @@ public class ChessBoard {
 			}
 		}
 	}
+	
 	private List<BaseMove> extrudeEnd(List<BaseMove> pseudoMoves, ChessPiece piece, int x, int y, int dx, int dy) {
 		return extrude(pseudoMoves, piece, x, y, dx, dy, ROWS * COLUMNS);
 	}
@@ -352,13 +376,12 @@ public class ChessBoard {
 		{ new ChessPiece(Rook, White), new ChessPiece(Knight, White), new ChessPiece(Bishop, White), new ChessPiece(Queen, White), new ChessPiece(King, White), new ChessPiece(Bishop, White), new ChessPiece(Knight, White), new ChessPiece(Rook, White) }
 	};
 
-	public List<BaseMove> getTurns() {
-		return turns;
-	}
+	public List<BaseMove> getTurns() { return turns; }
 
-	public void setTurns(List<BaseMove> turns){
-		this.turns.clear();
-		this.turns.addAll(turns);
+	public void setTurns(List<BaseMove> newTurns){
+		turns.clear();
+		turns.addAll(newTurns);
+		updateMovesSinceCapture();
 	}
 
 }
