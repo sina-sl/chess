@@ -9,8 +9,6 @@ public class Capture extends BaseMove {
         this.defeated = defeated;
     }
 
-    public ChessPiece getAttacked() { return defeated; }
-
     @Override
     protected void undo(ChessBoard board) {
         piece.undo();
