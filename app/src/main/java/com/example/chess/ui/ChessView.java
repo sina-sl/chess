@@ -42,6 +42,7 @@ public class ChessView extends LinearLayout {
 
   private final int rowCount = 8;
   private final int colCount = 8;
+  private boolean isPlayback = false;
 
   private static List<BaseMove> undone = new ArrayList<>();
   private static List<BaseMove> moves = null;
@@ -74,6 +75,7 @@ public class ChessView extends LinearLayout {
   @SuppressLint("UseCompatLoadingForDrawables")
   private void createChessBackground() {
 
+    isPlayback = false;
     kingStrikes=null;
     moves = null;
     undone.clear();
@@ -266,6 +268,7 @@ public class ChessView extends LinearLayout {
             MainActivity.gameDB.insertGame(
               new GameDB.Game(
                 input,
+                System.currentTimeMillis(),
                 save1
               )
             );
@@ -290,6 +293,7 @@ public class ChessView extends LinearLayout {
             MainActivity.gameDB.insertGame(
               new GameDB.Game(
                 input,
+                System.currentTimeMillis(),
                 save2
               )
             );
@@ -304,13 +308,15 @@ public class ChessView extends LinearLayout {
   }
 
   public void undo() {
-    BaseMove move = board.undo();
-    if (move != null) {
-      undone.add(move);
-      kingStrikes = board.kingStrikers(board.getCurrentPlayerColor());
+    if (undone.size() == 0 || isPlayback){
+      BaseMove move = board.undo();
+      if (move != null) {
+        undone.add(move);
+        kingStrikes = board.kingStrikers(board.getCurrentPlayerColor());
+      }
+      moves = null;
+      resetGrid();
     }
-    moves = null;
-    resetGrid();
   }
 
   public void redo() {
@@ -333,6 +339,7 @@ public class ChessView extends LinearLayout {
   }
 
   private void freeze(){
+    isPlayback = true;
     for (PieceItem[] pieceItem : pieceItems) {
       for (PieceItem item : pieceItem) {
         item.setClickable(false);
