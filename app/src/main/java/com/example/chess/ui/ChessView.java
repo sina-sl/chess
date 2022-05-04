@@ -44,6 +44,8 @@ public class ChessView extends LinearLayout {
 	
 	private static List<Capture> kingStrikes = null;
 	
+	private boolean isPlayback = false;
+	
 	private static final ChessBoard board = new ChessBoard();
 	
 	private final PieceItem[][] pieceItems = new PieceItem[board.ROWS][board.COLUMNS];
@@ -264,7 +266,7 @@ public class ChessView extends LinearLayout {
 				
 				// TODO: Instead teleport to the game viewer if the game is saved, otherwise, reset
 				updateGridCells();
-				board.reset();
+				freeze();
 				
 				break;
 			
@@ -292,7 +294,7 @@ public class ChessView extends LinearLayout {
 					}
 				);
 				updateGridCells();
-				board.reset();
+				freeze();
 				
 				break;
 		}
@@ -302,12 +304,12 @@ public class ChessView extends LinearLayout {
 	}
 	
 	public void undo() {
-		//if (undoneMoves.size() < MAX_UNDO) { // TODO: enable this check, disabled for debugging
+		if (isPlayback || undoneMoves.size() < MAX_UNDO) {
 			BaseMove move = board.undo();
 			if (move != null) { undoneMoves.add(move); }
 			selectedPieceMoves = null;
 			updateGridCells();
-		//}
+		}
 	}
 	
 	public void redo() {
@@ -326,13 +328,16 @@ public class ChessView extends LinearLayout {
 			undoneMoves.add(i, turns.get((turns.size() - 1) - i));
 		}
 		
+		updateGridCells();
+	}
+	
+	private void freeze(){
+		isPlayback = true;
 		for (int i = 0; i < pieceItems.length ; i++) {
 			for (int j = 0; j < pieceItems[i].length; j++) {
 				pieceItems[i][j].setClickable(false);
 			}
 		}
-		
-		updateGridCells();
 	}
 	
 	@Override
